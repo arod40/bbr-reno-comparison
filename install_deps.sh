@@ -1,12 +1,14 @@
 #!/bin/bash
 
+sudo apt-get install -y git
+
 uname -a
 git clone git://github.com/mininet/mininet 
 mininet/util/install.sh -a 
 sudo apt-get install -y python-termcolor
 sudo apt-get install -y python-matplotlib
 
-wget http://downloads.es.net/pub/iperf/iperf-3.0.11.tar.gz
+wget https://downloads.es.net/pub/iperf/iperf-3.0.11.tar.gz
 tar -xvf iperf-3.0.11.tar.gz
 cd iperf-3.0.11
 ./configure
