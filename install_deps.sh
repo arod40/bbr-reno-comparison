@@ -1,7 +1,5 @@
 #!/bin/bash
 
-sudo apt-get install -y git
-
 uname -a
 git clone git://github.com/mininet/mininet 
 mininet/util/install.sh -a 

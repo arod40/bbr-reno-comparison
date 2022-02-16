@@ -1,29 +1,27 @@
 # Setup
 
-The experiment setup uses two Google cloud VMs running a modified linux kernel. We
-provide a simple install script to create the VMs and install all needed
-dependencies.
+The experiment setup uses two VBox Virtual Machines running a modified linux kernel on top of Lubuntu 16.04.
 
-The setup is modified from https://github.com/google/bbr/blob/master/Documentation/bbr-quick-start.md
+This setup is modified from https://github.com/bgirardeau/bbr-replication.git
 
-The setup script uses gcloud commandline tools, so first install those following the
-instructions at: https://cloud.google.com/sdk/downloads 
+The only prerequisite to run this project is Oracle Virtual Box
 
-Login to a gcloud project:
-```
-gcloud auth login
-```
+First, create two virtual machines called TCP1 and TCP2 (just for reference, they can be called whatever), using the Lubuntu 16.04 image. It can be obtained from https://cdimage.ubuntu.com/lubuntu/releases/16.04/release/. The setup is the same for both machines unless state otherwise.
 
-By default, the script uses a new "bbr-replication" Google cloud project for the VMs,
-but you can change this by modifying `settings.sh`
+When creating the virtual machine, make sure to give it at least 9Gb of hard drive space. I used 16Gb and 4Gb of RAM.
+Also, add an Internal Network Adapter (leave the NAT adapter so that the machines are able to connect to the Internet).
+Once installed the OS, configure the internal network interface and assign IPs manually (different IPs on the same network for each machine).
+Install Git (```sudo apt-get install -y git```)
+Clone the repository https://github.com/arod40/bbr-reno-comparison into a directory you prefer
+Enter the project directory
+```sed -i -e 's/\r$//' *.sh```. This is to fix the carriage return character introduced by Windows (yes, I use Windows).
+```sudo chmod +x *.sh```. To give execution permission to the scripts.
+```./install_kernel.sh```. This installs the modified linux kernel. After the script is completed the computer will reboot.
+Go again to the project directory
+```./install_deps.sh```
 
-Run the script to create the VMs:
-```
-# This script will take roughly 30 minutes to complete.
-# You may need to interact with 1 or 2 prompts at the beginning when it
-# launches the VMs
-bash create_vms.sh
-```
+Now, it is needed to link the machines. First, add the TCP1's public key to the list of authorized keys of TCP2. To do that, copy the contents of the TCP1's file ```~/.ssh/id_rsa.pub``` into TCP2's ```~/.ssh/authorized_keys```
+Finally, create a file ```~/.bbr_pair_ip``` containing only the IP address assigned to TCP2 in the internal network interface.
 
 # Running the experiments
 
