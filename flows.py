@@ -87,14 +87,14 @@ class BBTopo(Topo):
 
     def build(self, n):
         switch = self.addSwitch('s0')
-        host_dest = self.addHost('h{}'.format(n))
-        link_dest = self.addLink(host_dest, switch, bw=args.bw_net,
-                             delay=str(args.delay) + 'ms',
-                             max_queue_size=args.maxq)
         for i in range(n):
             host = self.addHost('h{}'.format(i))
             link = self.addLink(host, switch,
                              bw=args.bw_host)
+        host_dest = self.addHost('h{}'.format(n))
+        link_dest = self.addLink(host_dest, switch, bw=args.bw_net,
+                             delay=str(args.delay) + 'ms',
+                             max_queue_size=args.maxq)
         return
 
 def get_ip_address(test_destination="8.8.8.8"):
@@ -173,9 +173,9 @@ def iperf_bbr_mon(net, i, port, num_flows):
                        runner=net['h{}'.format(i)]['popen'])
     return mon
 
-def start_capture(outfile="capture.dmp"):
+def start_capture(outfile="capture.dmp", options=""):
     monitor = Process(target=capture_packets,
-                      args=("", outfile))
+                      args=(options, outfile))
     monitor.start()
     return monitor
 
@@ -324,7 +324,7 @@ def figure2(net):
     """ """
     # Start packet capturing
     if not args.no_capture:
-        cap = start_capture("{}/capture.dmp".format(args.dir))
+        cap = start_capture("{}/capture.dmp".format(args.dir), options="-i any")
 
     # Start the iperf flows.
     time_btwn_flows = args.time_btwn_flows

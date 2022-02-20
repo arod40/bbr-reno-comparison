@@ -17,11 +17,9 @@ oldpwd=$PWD
 mkdir -p $dir
 rm -rf $dir/*
 
-flowtype=iperf
-
 echo "running $type experiment..."
 
-python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay $delay --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --flow-type $flowtype --dir $dir
+python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay $delay --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --dir $dir
 
 cd $dir
 echo "processing flows..."
