@@ -55,6 +55,16 @@ parser.add_argument('--maxq',
                     help="Max buffer size of network interface in packets",
                     default=100)
 
+parser.add_argument('--time-btwn-flows',
+                    type=int,
+                    help="Time in seconds in between two starting flows",
+                    default=2)
+
+parser.add_argument('--num-flows',
+                    type=int,
+                    help="Number of flows",
+                    default=1)
+
 # Linux uses CUBIC-TCP by default.
 parser.add_argument('--cong',
                     help="Congestion control algorithm to use",
@@ -62,8 +72,8 @@ parser.add_argument('--cong',
 
 parser.add_argument('--fig-num',
                     type=int,
-                    help="Figure to replicate. Valid options are 5 or 6",
-                    default=6)
+                    help="Figure to produce. Valid options are 1 or 2",
+                    default=1)
 
 parser.add_argument('--flow-type',
                     default="netperf")
@@ -378,7 +388,7 @@ def display_countdown(nseconds):
             break
         print "%.1fs left..." % (nseconds - delta)
 
-def figure5(net):
+def figure1(net):
     """ """
     def pinger(name):
         def ping_fn(net, i, port):
@@ -409,15 +419,15 @@ def figure5(net):
                        "{}/capture_cubic.dmp".format(args.dir),
                        "{}/flow_cubic.dmp".format(args.dir))
 
-def figure6(net):
+def figure2(net):
     """ """
     # Start packet capturing
     if not args.no_capture:
         cap = start_capture("{}/capture.dmp".format(args.dir))
 
     # Start the iperf flows.
-    n_iperf_flows = 5
-    time_btwn_flows = 2
+    n_iperf_flows = args.num_flows
+    time_btwn_flows = args.time_btwn_flows
     cong = [args.cong for x in range(n_iperf_flows)]
     flows = start_flows(net, n_iperf_flows, time_btwn_flows, args.flow_type, cong,
                        flow_monitor=iperf_bbr_mon)
@@ -465,11 +475,9 @@ def bonus(net):
             flow['monitor'].terminate()
 
 if __name__ == "__main__":
-    if args.fig_num == 5:
-        run(figure5)
-    elif args.fig_num == 6:
-        run(figure6)
-    elif args.fig_num == 7:
-	run(bonus)
+    if args.fig_num == 1:
+        run(figure1)
+    elif args.fig_num == 2:
+        run(figure2)
     else:
-        print "Error: please enter a valid figure number: 5 or 6"
+        print "Error: please enter a valid figure number: 1 or 2"

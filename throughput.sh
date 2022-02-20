@@ -9,7 +9,10 @@ time=$3
 delay=$4
 maxq=$5
 bw=$6
+num_flows=$7
+time_btwn_flows=$8
 
+last_flow=`expr $num_flows - 1`
 oldpwd=$PWD
 mkdir -p $dir
 rm -rf $dir/*
@@ -20,11 +23,11 @@ flowtype=iperf
 echo "running $type experiment..."
 
 destip=`su $SUDO_USER -c "cat ~/.bbr_pair_ip"`
-python flows.py --fig-num 6 --cong $cong --time $time --bw-net $bw --delay $delay --maxq $maxq --environment $environment --flow-type $flowtype --dir $dir
+python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay $delay --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --environment $environment --flow-type $flowtype --dir $dir
 
 cd $dir
 echo "processing flows..."
-for i in 0 1 2 3 4; do
+for i in $(seq 0 $last_flow); do
 captcp throughput -u Mbit --stdio flow$i.dmp > captcp$i.txt
 awk "{print (\$1+$i*2-1)(\",\")(\$2) }" < captcp$i.txt > captcp-csv$i.txt
 done
