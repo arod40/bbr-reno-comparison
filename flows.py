@@ -312,8 +312,8 @@ def figure1(net):
         Popen("killall tcpdump", shell=True)
         cap.join()
         filter_capture(flows[0]['filter'],
-                       "{}/capture_bbr.dmp".format(args.dir),
-                       "{}/flow_bbr.dmp".format(args.dir))
+                    "{}/capture_bbr.dmp".format(args.dir),
+                    "{}/flow_bbr.dmp".format(args.dir))
         cap = start_capture("{}/capture_reno.dmp".format(args.dir))
 
     flows = start_flows(net, 1, 0, ["reno"], pre_flow_action=pinger("reno"))
@@ -323,8 +323,8 @@ def figure1(net):
         Popen("killall tcpdump", shell=True)
         cap.join()
         filter_capture(flows[0]['filter'],
-                       "{}/capture_reno.dmp".format(args.dir),
-                       "{}/flow_reno.dmp".format(args.dir))
+                    "{}/capture_reno.dmp".format(args.dir),
+                    "{}/flow_reno.dmp".format(args.dir))
 
 def figure2(net):
     """ """
