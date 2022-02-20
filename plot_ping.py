@@ -39,7 +39,7 @@ for i, f in enumerate(args.files):
     if "bbr" in args.files[i]:
 	name = "bbr"
     else:
-	name = "cubic"
+	name = "reno"
     ax.plot(xaxis, rtts, lw=2, label=name)
     plt.legend()
     ax.xaxis.set_major_locator(LinearLocator(5))

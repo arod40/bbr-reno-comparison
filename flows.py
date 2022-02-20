@@ -341,17 +341,17 @@ def figure1(net):
         filter_capture(flows[0]['filter'],
                        "{}/capture_bbr.dmp".format(args.dir),
                        "{}/flow_bbr.dmp".format(args.dir))
-        cap = start_capture("{}/capture_cubic.dmp".format(args.dir))
+        cap = start_capture("{}/capture_reno.dmp".format(args.dir))
 
-    flows = start_flows(net, 1, 0, args.flow_type, ["cubic"], pre_flow_action=pinger("cubic"))
+    flows = start_flows(net, 1, 0, args.flow_type, ["reno"], pre_flow_action=pinger("reno"))
     display_countdown(args.time + 5)
 
     if not args.no_capture:
         Popen("killall tcpdump", shell=True)
         cap.join()
         filter_capture(flows[0]['filter'],
-                       "{}/capture_cubic.dmp".format(args.dir),
-                       "{}/flow_cubic.dmp".format(args.dir))
+                       "{}/capture_reno.dmp".format(args.dir),
+                       "{}/flow_reno.dmp".format(args.dir))
 
 def figure2(net):
     """ """
@@ -389,7 +389,7 @@ def bonus(net):
         cap = start_capture("{}/capture.dmp".format(args.dir))
 
     # Start the iperf flows.
-    flows = start_flows(net, 2, 0, args.flow_type, ["cubic", "bbr"],
+    flows = start_flows(net, 2, 0, args.flow_type, ["reno", "bbr"],
                        flow_monitor=iperf_bbr_mon)
 
     # Print time left to show user how long they have to wait.
