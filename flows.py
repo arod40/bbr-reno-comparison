@@ -75,9 +75,6 @@ parser.add_argument('--fig-num',
                     help="Figure to produce. Valid options are 1 or 2",
                     default=1)
 
-parser.add_argument('--flow-type',
-                    default="netperf")
-
 parser.add_argument('--no-capture',
                     action='store_true',
                     default=False)
@@ -88,15 +85,16 @@ args = parser.parse_args()
 class BBTopo(Topo):
     "Simple topology for bbr experiments."
 
-    def build(self, n=2):
-        host1 = self.addHost('h1')
-        host2 = self.addHost('h2')
+    def build(self, n):
         switch = self.addSwitch('s0')
-        link1 = self.addLink(host1, switch,
-                             bw=args.bw_host)
-        link2 = self.addLink(host2, switch, bw=args.bw_net,
+        host_dest = self.addHost('h{}'.format(n))
+        link_dest = self.addLink(host_dest, switch, bw=args.bw_net,
                              delay=str(args.delay) + 'ms',
                              max_queue_size=args.maxq)
+        for i in range(n):
+            host = self.addHost('h{}'.format(i))
+            link = self.addLink(host, switch,
+                             bw=args.bw_host)
         return
 
 def get_ip_address(test_destination="8.8.8.8"):
@@ -104,7 +102,7 @@ def get_ip_address(test_destination="8.8.8.8"):
     s.connect((test_destination, 80))
     return s.getsockname()[0]
 
-def build_topology():
+def build_topology(n):
     def runner(popen, noproc=False):
         def run_fn(command, background=False, daemon=True):
             if noproc:
@@ -121,7 +119,7 @@ def build_topology():
             return proc
         return run_fn
 
-    topo = BBTopo()
+    topo = BBTopo(n)
     net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
     net.start()
 
@@ -129,29 +127,22 @@ def build_topology():
     net.pingAll()
     data = {
         'type': 'mininet',
-        'h1': {
-            'IP': net.get('h1').IP(),
-            'popen': net.get('h1').popen,
-        },
-        'h2': {
-            'IP': net.get('h2').IP(),
-            'popen': net.get('h2').popen
-        },
         'obj': net,
         'cleanupfn': net.stop
     }
-    # disable gso, tso, gro
-    h2run = runner(data['h2']['popen'], noproc=False)
-    h1run = runner(data['h1']['popen'], noproc=False)
-    h1run(
-        "sudo ethtool -K h1-eth0 gso off tso off gro off;"
-    )
-    h2run(
-        "sudo ethtool -K h2-eth0 gso off tso off gro off;"
-    )
+    for i in range(n+1):
+        h = 'h{}'.format(i)
+        data[h]= {
+            'IP': net.get(h).IP(),
+            'popen': net.get(h).popen,
+        }
+        # disable gso, tso, gro
+        hrun = runner(data[h]['popen'], noproc=False)
+        hrun(
+            "sudo ethtool -K {}-eth0 gso off tso off gro off;".format(h)
+        )
 
-    data['h1']['runner'] = runner(data['h1']['popen'], noproc=False)
-    data['h2']['runner'] = runner(data['h2']['popen'], noproc=False)
+        data[h]['runner'] = runner(data[h]['popen'], noproc=False)
 
     return data
 
@@ -176,10 +167,10 @@ def start_bbrmon(dst, interval_sec=0.1, outfile="bbr.txt", runner=None):
     monitor.start()
     return monitor
 
-def iperf_bbr_mon(net, i, port):
-    mon = start_bbrmon("%s:%s" % (net['h2']['IP'], port),
+def iperf_bbr_mon(net, i, port, num_flows):
+    mon = start_bbrmon("%s:%s" % (net['h{}'.format(num_flows)]['IP'], port),
                        outfile= "%s/bbr%s.txt" %(args.dir, i),
-                       runner=net['h1']['popen'])
+                       runner=net['h{}'.format(i)]['popen'])
     return mon
 
 def start_capture(outfile="capture.dmp"):
@@ -195,8 +186,8 @@ def filter_capture(filt, infile="capture.dmp", outfile="filtered.dmp"):
     monitor.start()
     return monitor
 
-def iperf_setup(h1, h2, ports):
-    h2['runner']("killall iperf3")
+def iperf_setup(hdest, ports):
+    hdest['runner']("killall iperf3")
     sleep(1) # make sure ports can be reused
     for port in ports:
         # -s: server
@@ -205,7 +196,7 @@ def iperf_setup(h1, h2, ports):
         # -i 1: measure every second
         # -1: one-off (one connection then exit)
         cmd = "iperf3 -s -p {} -f m -i 1 -1".format(port)
-        h2['runner'](cmd, background=True)
+        hdest['runner'](cmd, background=True)
     sleep(min(10, len(ports))) # make sure all the servers start
 
 def iperf_commands(index, h1, h2, port, cong, duration, outdir, delay=0):
@@ -222,84 +213,60 @@ def iperf_commands(index, h1, h2, port, cong, duration, outdir, delay=0):
     )
     h1['runner'](client, background=True)
 
-def netperf_commands(index, h1, h2, port, cong, duration, outdir, delay=0):
-    # -H [ip]: remote host
-    # -p [port]: port of netserver
-    # -s [time]: time to sleep
-    # -l [seconds]: duration
-    # -- -s [size]: sender TCP buffer
-    # -- -P [port]: port of data flow
-    # -- -K [cong]: congestion control protocol
-    window = '-s 16m,' if args.fig_num == 6 else ''
-    client = "netperf -H {} -s {} -p 5555 -l {} -- {} -K {} -P {} > {}".format(
-        h2['IP'], delay, duration, window, cong, port,
-        "{}/netperf{}.txt".format(outdir, index)
-    )
-    h1['runner'](client, background=True)
-
-def netperf_setup(h1, h2):
-    server = "killall netserver; netserver -p 5555"
-    h2['runner'](server)
-
-def start_flows(net, num_flows, time_btwn_flows, flow_type, cong,
+def start_flows(net, num_flows, time_btwn_flows, cong,
                 pre_flow_action=None, flow_monitor=None):
-    h1 = net['h1']
-    h2 = net['h2']
+    hosts = [net['h{}'.format(i)] for i in range(num_flows)]
+    hn = net['h{}'.format(num_flows)]
 
     print "Starting flows..."
     flows = []
     base_port = 1234
 
-    if flow_type == 'netperf':
-        netperf_setup(h1, h2)
-        flow_commands = netperf_commands
-    else:
-        iperf_setup(h1, h2, [base_port + i for i in range(num_flows)])
-        flow_commands = iperf_commands
+    iperf_setup(hn, [base_port + i for i in range(num_flows)])
+    flow_commands = iperf_commands
 
     def start_flow(i):
+        hi = hosts[i]
         if pre_flow_action is not None:
             pre_flow_action(net, i, base_port + i)
-        flow_commands(i, h1, h2, base_port + i, cong[i],
+        flow_commands(i, hi, hn, base_port + i, cong[i],
                       args.time - time_btwn_flows * i,
                       args.dir, delay=i*time_btwn_flows)
         flow = {
             'index': i,
-            'send_filter': 'src {} and dst {} and dst port {}'.format(h1['IP'], h2['IP'],
+            'send_filter': 'src {} and dst {} and dst port {}'.format(hi['IP'], hn['IP'],
                                                                       base_port + i),
-            'receive_filter': 'src {} and dst {} and src port {}'.format(h2['IP'], h1['IP'],
+            'receive_filter': 'src {} and dst {} and src port {}'.format(hn['IP'], hi['IP'],
                                                                          base_port + i),
             'monitor': None
         }
         flow['filter'] = '"({}) or ({})"'.format(flow['send_filter'], flow['receive_filter'])
         if flow_monitor:
-            flow['monitor'] = flow_monitor(net, i, base_port + i)
+            flow['monitor'] = flow_monitor(net, i, base_port + i, num_flows)
         flows.append(flow)
     s = sched.scheduler(time, sleep)
     for i in range(num_flows):
-        if flow_type == 'iperf':
-            s.enter(i * time_btwn_flows, 1, start_flow, [i])
-        else:
-            s.enter(0, i, start_flow, [i])
+        s.enter(i * time_btwn_flows, 1, start_flow, [i])
     s.run()
     return flows
 
 # Start a ping train between h1 and h2 lasting for the given time. Send the
 # output to the given fname.
-def start_ping(net, time, fname):
-    h1 = net['h1']
-    h2 = net['h2']
-    command = "ping -i 0.1 -c {} {} > {}/{}".format(
-        time*10, h2['IP'],
-        args.dir, fname
-    )
-    h1['runner'](command, background=True)
+def start_ping(net, time, fname, num_flows):
+    hn = net['h{}'.format(num_flows)]
+    for i in range(num_flows):
+        hi = net['h{}'.format(i)]
+        command = "ping -i 0.1 -c {} {} > {}/{}".format(
+            time*10, hn['IP'],
+            args.dir, fname
+        )
+        hi['runner'](command, background=True)
 
 def run(action):
     if not os.path.exists(args.dir):
         os.makedirs(args.dir)
 
-    net = build_topology()
+    net = build_topology(args.num_flows)
     if action:
         action(net)
 
@@ -326,13 +293,13 @@ def figure1(net):
     """ """
     def pinger(name):
         def ping_fn(net, i, port):
-            start_ping(net, args.time, "{}_rtt.txt".format(name))
+            start_ping(net, args.time, "{}_rtt.txt".format(name), args.num_flows)
         return ping_fn
 
     if not args.no_capture:
         cap = start_capture("{}/capture_bbr.dmp".format(args.dir))
 
-    flows = start_flows(net, 1, 0, args.flow_type, ["bbr"], pre_flow_action=pinger("bbr"))
+    flows = start_flows(net, 1, 0, ["bbr"], pre_flow_action=pinger("bbr"))
     display_countdown(args.time + 5)
 
     if not args.no_capture:
@@ -343,7 +310,7 @@ def figure1(net):
                        "{}/flow_bbr.dmp".format(args.dir))
         cap = start_capture("{}/capture_reno.dmp".format(args.dir))
 
-    flows = start_flows(net, 1, 0, args.flow_type, ["reno"], pre_flow_action=pinger("reno"))
+    flows = start_flows(net, 1, 0, ["reno"], pre_flow_action=pinger("reno"))
     display_countdown(args.time + 5)
 
     if not args.no_capture:
@@ -360,10 +327,9 @@ def figure2(net):
         cap = start_capture("{}/capture.dmp".format(args.dir))
 
     # Start the iperf flows.
-    n_iperf_flows = args.num_flows
     time_btwn_flows = args.time_btwn_flows
-    cong = [args.cong for x in range(n_iperf_flows)]
-    flows = start_flows(net, n_iperf_flows, time_btwn_flows, args.flow_type, cong,
+    cong = [args.cong for x in range(args.num_flows)]
+    flows = start_flows(net, args.num_flows, time_btwn_flows, cong,
                        flow_monitor=iperf_bbr_mon)
 
     # Print time left to show user how long they have to wait.
@@ -389,7 +355,7 @@ def bonus(net):
         cap = start_capture("{}/capture.dmp".format(args.dir))
 
     # Start the iperf flows.
-    flows = start_flows(net, 2, 0, args.flow_type, ["reno", "bbr"],
+    flows = start_flows(net, 2, 0, ["reno", "bbr"],
                        flow_monitor=iperf_bbr_mon)
 
     # Print time left to show user how long they have to wait.
