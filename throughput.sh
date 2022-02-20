@@ -4,6 +4,11 @@
 
 
 dir=$1
+cong=$2
+time=$3
+delay=$4
+maxq=$5
+bw=$6
 
 oldpwd=$PWD
 mkdir -p $dir
@@ -15,7 +20,7 @@ flowtype=iperf
 echo "running $type experiment..."
 
 destip=`su $SUDO_USER -c "cat ~/.bbr_pair_ip"`
-python flows.py --fig-num 6 --cong bbr --time 55 --bw-net 100 --delay 5 --maxq 1024 --environment $environment --flow-type $flowtype --dir $dir
+python flows.py --fig-num 6 --cong $cong --time $time --bw-net $bw --delay $delay --maxq $maxq --environment $environment --flow-type $flowtype --dir $dir
 
 cd $dir
 echo "processing flows..."
