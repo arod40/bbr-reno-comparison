@@ -18,9 +18,9 @@ cd $dir
 echo "processing flows..."
 for i in $(seq 0 $last_flow); do
 captcp throughput -u Mbit --stdio flow$i.dmp > captcp$i.txt
-awk "{print (\$1+$i*2-1)(\",\")(\$2) }" < captcp$i.txt > captcp-csv$i.txt
+awk "{print (\$1+$i*$time_btwn_flows-1)(\",\")(\$2) }" < captcp$i.txt > captcp-csv$i.txt
 done
 cd $oldpwd
-python plot_throughput.py --xlimit $time -f $dir/captcp-csv* -o $dir/throughput.png
+python plot_throughput.py --time-btwn-flows $time_btwn_flows --xlimit $time -f $dir/captcp-csv* -o $dir/throughput.png
 
 rm -f $dir/*.txt $dir/*.dmp

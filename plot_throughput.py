@@ -40,6 +40,11 @@ parser.add_argument('--xlimit',
                     type=float,
                     default=50)
 
+parser.add_argument('--time-btwn-flows',
+                    help="Time between flows",
+                    type=float,
+                    default=2)
+
 parser.add_argument('--every',
                     help="If the plot has a lot of data points, plot one of every EVERY (x,y) point (default 1).",
                     default=1,
@@ -66,7 +71,7 @@ def get_style(i):
 m.rc('figure', figsize=(32, 12))
 fig = figure()
 ax = fig.add_subplot(111)
-time_btwn_flows = 2.0
+time_btwn_flows = args.time_btwn_flows
 for i, f in enumerate(sorted(args.files)):
     data = read_list(f)
     xaxis = map(float, col(0, data))
