@@ -4,19 +4,11 @@
 
 
 dir=$1
-cong=$2
-time=$3
-delay_min=$4
-delay_max=$5
-maxq=$6
-bw=$7
-num_flows=$8
-time_btwn_flows=$9
+source $dir/setup.sh
 
 last_flow=`expr $num_flows - 1`
 oldpwd=$PWD
-mkdir -p $dir
-rm -rf $dir/*
+rm -f $dir/*.png
 
 echo "running $type experiment..."
 
@@ -30,3 +22,5 @@ awk "{print (\$1+$i*2-1)(\",\")(\$2) }" < captcp$i.txt > captcp-csv$i.txt
 done
 cd $oldpwd
 python plot_throughput.py --xlimit $time -f $dir/captcp-csv* -o $dir/throughput.png
+
+rm -f $dir/*.txt $dir/*.dmp
