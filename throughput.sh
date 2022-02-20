@@ -17,13 +17,11 @@ oldpwd=$PWD
 mkdir -p $dir
 rm -rf $dir/*
 
-environment=mininet
 flowtype=iperf
 
 echo "running $type experiment..."
 
-destip=`su $SUDO_USER -c "cat ~/.bbr_pair_ip"`
-python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay $delay --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --environment $environment --flow-type $flowtype --dir $dir
+python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay $delay --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --flow-type $flowtype --dir $dir
 
 cd $dir
 echo "processing flows..."

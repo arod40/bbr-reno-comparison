@@ -78,15 +78,9 @@ parser.add_argument('--fig-num',
 parser.add_argument('--flow-type',
                     default="netperf")
 
-parser.add_argument('--environment',
-                    default="vms")
-
 parser.add_argument('--no-capture',
                     action='store_true',
                     default=False)
-
-parser.add_argument('--dest-ip',
-                    default="10.138.0.3")
 
 # Expt parameters
 args = parser.parse_args()
@@ -110,7 +104,7 @@ def get_ip_address(test_destination="8.8.8.8"):
     s.connect((test_destination, 80))
     return s.getsockname()[0]
 
-def build_topology(emulator):
+def build_topology():
     def runner(popen, noproc=False):
         def run_fn(command, background=False, daemon=True):
             if noproc:
@@ -127,94 +121,34 @@ def build_topology(emulator):
             return proc
         return run_fn
 
-    if emulator == 'mininet':
-        topo = BBTopo()
-        net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
-        net.start()
+    topo = BBTopo()
+    net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
+    net.start()
 
-        dumpNodeConnections(net.hosts)
-        net.pingAll()
-        data = {
-            'type': 'mininet',
-            'h1': {
-                'IP': net.get('h1').IP(),
-                'popen': net.get('h1').popen,
-            },
-            'h2': {
-                'IP': net.get('h2').IP(),
-                'popen': net.get('h2').popen
-            },
-            'obj': net,
-            'cleanupfn': net.stop
-        }
-        # disable gso, tso, gro
-        h2run = runner(data['h2']['popen'], noproc=False)
-        h1run = runner(data['h1']['popen'], noproc=False)
-        h1run(
-            "sudo ethtool -K h1-eth0 gso off tso off gro off;"
-        )
-        h2run(
-            "sudo ethtool -K h2-eth0 gso off tso off gro off;"
-        )
-
-    else:
-        def ssh_popen(command, *args, **kwargs):
-            user = os.environ.get('SUDO_USER', os.environ['USER'])
-            full_command = "ssh -o StrictHostKeyChecking=no -i /home/{}/.ssh/id_rsa {}@{} '{} {}'".format(
-                user, user, data['h2']['IP'], 'sudo bash -c',
-                json.dumps(command)
-            )
-            kwargs['shell'] = True
-            return Popen(full_command, *args, **kwargs)
-
-        data = {
-            'type': 'emulator',
-            'h1': {
-                'IP': get_ip_address(args.dest_ip),
-                'popen': Popen,
-            },
-            'h2': {
-                'IP': args.dest_ip,
-                'popen': ssh_popen
-            },
-            'obj': None
-        }
-
-        # set up tc qdiscs on hosts
-        h2run = runner(data['h2']['popen'], noproc=False)
-        h1run = runner(data['h1']['popen'], noproc=False)
-        pipe_filter = (
-            "tc qdisc del dev {iface} root; "
-            "tc qdisc add dev {iface} root handle 1: htb default 10; "
-            "tc class add dev {iface} parent 1: classid 1:10 htb rate {rate}Mbit; "
-            "tc qdisc add dev {iface} parent 1:10 handle 20: netem delay {delay}ms limit {queue}; "
-        )
-        ingress_filter = (
-            "modprobe ifb numifbs=1; "
-            "ip link set dev ifb0 up; "
-            "ifconfig ifb0 txqueuelen 1000; "
-            "tc qdisc del dev {iface} ingress; "
-            "tc qdisc add dev {iface} handle ffff: ingress; "
-            "tc filter add dev {iface} parent ffff: protocol all u32 match u32 0 0 action"
-            " mirred egress redirect dev ifb0; "
-        )
-        pipe_args = {
-            'rate': args.bw_net,
-            'delay': args.delay,
-            'queue': args.maxq
-        }
-        h2run(
-            ingress_filter.format(iface="ens4") +
-            pipe_filter.format(iface="ifb0", **pipe_args) +
-            pipe_filter.format(iface="ens4", **pipe_args) +
-            "sudo ethtool -K ens4 gso off tso off gro off; "
-            "sudo ethtool -K ifb0 gso off tso off gro off; "
-        )
-        h1run(
-            "tc qdisc del dev ens4 root; "
-            "tc qdisc add dev ens4 root fq pacing; "
-            "sudo ethtool -K ens4 gso off tso off gro off; "
-        )
+    dumpNodeConnections(net.hosts)
+    net.pingAll()
+    data = {
+        'type': 'mininet',
+        'h1': {
+            'IP': net.get('h1').IP(),
+            'popen': net.get('h1').popen,
+        },
+        'h2': {
+            'IP': net.get('h2').IP(),
+            'popen': net.get('h2').popen
+        },
+        'obj': net,
+        'cleanupfn': net.stop
+    }
+    # disable gso, tso, gro
+    h2run = runner(data['h2']['popen'], noproc=False)
+    h1run = runner(data['h1']['popen'], noproc=False)
+    h1run(
+        "sudo ethtool -K h1-eth0 gso off tso off gro off;"
+    )
+    h2run(
+        "sudo ethtool -K h2-eth0 gso off tso off gro off;"
+    )
 
     data['h1']['runner'] = runner(data['h1']['popen'], noproc=False)
     data['h2']['runner'] = runner(data['h2']['popen'], noproc=False)
@@ -365,7 +299,7 @@ def run(action):
     if not os.path.exists(args.dir):
         os.makedirs(args.dir)
 
-    net = build_topology(args.environment)
+    net = build_topology()
     if action:
         action(net)
 
