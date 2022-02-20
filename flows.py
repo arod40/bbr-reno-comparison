@@ -139,6 +139,13 @@ def build_topology(n):
         'obj': net,
         'cleanupfn': net.stop
     }
+
+    iface_config = (
+        "tc qdisc del dev {iface} root; "
+        "tc qdisc add dev {iface} root fq pacing; "
+        "sudo ethtool -K {iface} gso off tso off gro off;"
+    )
+    
     for i in range(n+1):
         h = 'h{}'.format(i)
         data[h]= {
@@ -148,7 +155,7 @@ def build_topology(n):
         # disable gso, tso, gro
         hrun = runner(data[h]['popen'], noproc=False)
         hrun(
-            "sudo ethtool -K {}-eth0 gso off tso off gro off;".format(h)
+            iface_config.format(iface=h+'-eth0')
         )
 
         data[h]['runner'] = runner(data[h]['popen'], noproc=False)
