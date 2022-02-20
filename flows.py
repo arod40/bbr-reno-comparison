@@ -36,10 +36,15 @@ parser.add_argument('--bw-net', '-b',
                     help="Bandwidth of bottleneck (network) link (Mb/s)",
                     required=True)
 
-parser.add_argument('--delay',
+parser.add_argument('--delay-min',
                     type=float,
-                    help="Link propagation delay (ms)",
+                    help="Minimum link propagation delay (ms)",
                     required=True)
+
+parser.add_argument('--delay-max',
+                    type=float,
+                    help="Maximum link propagation delay (ms). If missing, all flows are set to have --delay-min.",
+                    required=False)
 
 parser.add_argument('--dir', '-d',
                     help="Directory to store outputs",
@@ -87,13 +92,14 @@ class BBTopo(Topo):
 
     def build(self, n):
         switch = self.addSwitch('s0')
+        delay = int((args.delay_max - args.delay_min) / n)
         for i in range(n):
             host = self.addHost('h{}'.format(i))
             link = self.addLink(host, switch,
+                             delay=str(args.delay_min + i*delay) + 'ms',
                              bw=args.bw_host)
         host_dest = self.addHost('h{}'.format(n))
         link_dest = self.addLink(host_dest, switch, bw=args.bw_net,
-                             delay=str(args.delay) + 'ms',
                              max_queue_size=args.maxq)
         return
 
@@ -207,7 +213,7 @@ def iperf_commands(index, h1, h2, port, cong, duration, outdir, delay=0):
     # -p [port]: port
     # -f m: format in megabits
     # -i 1: measure every second
-    window = '-w 16m' if args.fig_num == 6 else ''
+    window = '-w 16m' if args.fig_num == 2 else ''
     client = "iperf3 -c {} -f m -i 1 -p {} {} -C {} -t {} > {}".format(
         h2['IP'], port, window, cong, duration, "{}/iperf{}.txt".format(outdir, index)
     )
@@ -324,7 +330,7 @@ def figure2(net):
     """ """
     # Start packet capturing
     if not args.no_capture:
-        cap = start_capture("{}/capture.dmp".format(args.dir), options="-i any")
+        cap = start_capture("{}/capture.dmp".format(args.dir), options="-i s0-eth{}".format(args.num_flows+1))
 
     # Start the iperf flows.
     time_btwn_flows = args.time_btwn_flows

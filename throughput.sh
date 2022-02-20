@@ -6,11 +6,12 @@
 dir=$1
 cong=$2
 time=$3
-delay=$4
-maxq=$5
-bw=$6
-num_flows=$7
-time_btwn_flows=$8
+delay_min=$4
+delay_max=$5
+maxq=$6
+bw=$7
+num_flows=$8
+time_btwn_flows=$9
 
 last_flow=`expr $num_flows - 1`
 oldpwd=$PWD
@@ -19,7 +20,7 @@ rm -rf $dir/*
 
 echo "running $type experiment..."
 
-python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay $delay --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --dir $dir
+python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay-min $delay_min --delay-max $delay_max --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --dir $dir
 
 cd $dir
 echo "processing flows..."
@@ -28,4 +29,4 @@ captcp throughput -u Mbit --stdio flow$i.dmp > captcp$i.txt
 awk "{print (\$1+$i*2-1)(\",\")(\$2) }" < captcp$i.txt > captcp-csv$i.txt
 done
 cd $oldpwd
-python plot_throughput.py --xlimit 50 -f $dir/captcp-csv* -o $dir/throughput.png
+python plot_throughput.py --xlimit $time -f $dir/captcp-csv* -o $dir/throughput.png
