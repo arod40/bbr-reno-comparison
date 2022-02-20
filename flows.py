@@ -70,6 +70,9 @@ parser.add_argument('--num-flows',
                     help="Number of flows",
                     default=1)
 
+parser.add_argument('--flow-type',
+                    default="netperf")
+
 # Linux uses CUBIC-TCP by default.
 parser.add_argument('--cong',
                     help="Congestion control algorithm to use",
@@ -219,7 +222,27 @@ def iperf_commands(index, h1, h2, port, cong, duration, outdir, delay=0):
     )
     h1['runner'](client, background=True)
 
-def start_flows(net, num_flows, time_btwn_flows, cong,
+def netperf_commands(index, h1, h2, port, cong, duration, outdir, delay=0):
+    # -H [ip]: remote host
+    # -p [port]: port of netserver
+    # -s [time]: time to sleep
+    # -l [seconds]: duration
+    # -- -s [size]: sender TCP buffer
+    # -- -P [port]: port of data flow
+    # -- -K [cong]: congestion control protocol
+    window = '-s 16m,' if args.fig_num == 2 else ''
+    client = "netperf -H {} -s {} -p 5555 -l {} -- {} -K {} -P {} > {}".format(
+        h2['IP'], delay, duration, window, cong, port,
+        "{}/netperf{}.txt".format(outdir, index)
+    )
+    h1['runner'](client, background=True)
+
+def netperf_setup(hn):
+    server = "killall netserver; netserver -p 5555"
+    hn['runner'](server)
+
+
+def start_flows(net, num_flows, time_btwn_flows, cong, flow_type,
                 pre_flow_action=None, flow_monitor=None):
     hosts = [net['h{}'.format(i)] for i in range(num_flows)]
     hn = net['h{}'.format(num_flows)]
@@ -228,8 +251,12 @@ def start_flows(net, num_flows, time_btwn_flows, cong,
     flows = []
     base_port = 1234
 
-    iperf_setup(hn, [base_port + i for i in range(num_flows)])
-    flow_commands = iperf_commands
+    if flow_type == 'netperf':
+        netperf_setup(hn)
+        flow_commands = netperf_commands
+    else:
+        iperf_setup(hn, [base_port + i for i in range(num_flows)])
+        flow_commands = iperf_commands
 
     def start_flow(i):
         hi = hosts[i]
@@ -252,7 +279,10 @@ def start_flows(net, num_flows, time_btwn_flows, cong,
         flows.append(flow)
     s = sched.scheduler(time, sleep)
     for i in range(num_flows):
-        s.enter(i * time_btwn_flows, 1, start_flow, [i])
+        if flow_type == 'iperf':
+            s.enter(i * time_btwn_flows, 1, start_flow, [i])
+        else:
+            s.enter(0, i, start_flow, [i])
     s.run()
     return flows
 
@@ -305,7 +335,7 @@ def figure1(net):
     if not args.no_capture:
         cap = start_capture("{}/capture_bbr.dmp".format(args.dir))
 
-    flows = start_flows(net, 1, 0, ["bbr"], pre_flow_action=pinger("bbr"))
+    flows = start_flows(net, 1, 0, ["bbr"], args.flow_type, pre_flow_action=pinger("bbr"))
     display_countdown(args.time + 5)
 
     if not args.no_capture:
@@ -316,7 +346,7 @@ def figure1(net):
                     "{}/flow_bbr.dmp".format(args.dir))
         cap = start_capture("{}/capture_reno.dmp".format(args.dir))
 
-    flows = start_flows(net, 1, 0, ["reno"], pre_flow_action=pinger("reno"))
+    flows = start_flows(net, 1, 0, ["reno"], args.flow_type, pre_flow_action=pinger("reno"))
     display_countdown(args.time + 5)
 
     if not args.no_capture:
@@ -335,7 +365,7 @@ def figure2(net):
     # Start the iperf flows.
     time_btwn_flows = args.time_btwn_flows
     cong = [args.cong for x in range(args.num_flows)]
-    flows = start_flows(net, args.num_flows, time_btwn_flows, cong,
+    flows = start_flows(net, args.num_flows, time_btwn_flows, cong, args.flow_type,
                        flow_monitor=iperf_bbr_mon)
 
     # Print time left to show user how long they have to wait.

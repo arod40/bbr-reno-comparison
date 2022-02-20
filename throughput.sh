@@ -12,7 +12,7 @@ rm -f $dir/*.png
 
 echo "running $type experiment..."
 
-python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay-min $delay_min --delay-max $delay_max --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --dir $dir
+python flows.py --fig-num 2 --cong $cong --time $time --bw-net $bw --delay-min $delay_min --delay-max $delay_max --maxq $maxq --num-flows $num_flows --time-btwn-flows $time_btwn_flows --flow-type $flow_type --dir $dir
 
 cd $dir
 echo "processing flows..."
