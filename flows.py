@@ -41,9 +41,10 @@ parser.add_argument('--delay-min',
                     help="Minimum link propagation delay (ms)",
                     required=True)
 
-parser.add_argument('--delay-max',
+parser.add_argument('--delay-inc',
                     type=float,
-                    help="Maximum link propagation delay (ms). If missing, all flows are set to have --delay-min.",
+                    help="Increment in delay between flows",
+                    default=0,
                     required=False)
 
 parser.add_argument('--dir', '-d',
@@ -95,11 +96,11 @@ class BBTopo(Topo):
 
     def build(self, n):
         switch = self.addSwitch('s0')
-        delay = int((args.delay_max - args.delay_min) / n)
+        delay_inc = int(args.delay_inc)
         for i in range(n):
             host = self.addHost('h{}'.format(i))
             link = self.addLink(host, switch,
-                             delay=str(args.delay_min + i*delay) + 'ms',
+                             delay=str(args.delay_min + i*delay_inc) + 'ms',
                              bw=args.bw_host)
         host_dest = self.addHost('h{}'.format(n))
         link_dest = self.addLink(host_dest, switch, bw=args.bw_net,

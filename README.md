@@ -8,9 +8,7 @@ The only prerequisite to run this project is Oracle Virtual Box
 
 First, create a virtual machine called TCP (just for reference, it can be called whatever), using the Lubuntu 16.04 image. It can be obtained from https://cdimage.ubuntu.com/lubuntu/releases/16.04/release/.
 
-When creating the virtual machine, make sure to give it at least 9Gb of hard drive space. I used 16Gb and 4Gb of RAM.
-<!-- Also, add an Internal Network Adapter (leave the NAT adapter so that the machine is able to connect to the Internet). -->
-<!-- Once installed the OS, configure the internal network interface and assign IPs manually (different IPs on the same network for each machine). -->
+When creating the virtual machine, make sure to give it at least 9Gb of hard drive space, as the modified version of the kernel is heavy, and experiments packet traces can take several gigabytes. For this reason, all the traces are deleted after running an experiment. I used 16Gb and 4Gb of RAM.
 Install Git (```sudo apt-get install -y git```)
 Clone the repository https://github.com/arod40/bbr-reno-comparison into a directory you prefer
 Enter the project directory
@@ -19,9 +17,6 @@ Enter the project directory
 ```./install_kernel.sh```. This installs the modified linux kernel. After the script is completed the computer will reboot.
 Go again to the project directory
 ```./install_deps.sh```
-
-<!-- Now, it is needed to link the machines. First, add the TCP1's public key to the list of authorized keys of TCP2. To do that, copy the contents of the TCP1's file ```~/.ssh/id_rsa.pub``` into TCP2's ```~/.ssh/authorized_keys```
-Finally, create a file ```~/.bbr_pair_ip``` containing only the IP address assigned to TCP2 in the internal network interface. -->
 
 # Running the experiments
 
