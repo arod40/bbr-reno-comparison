@@ -76,7 +76,8 @@ parser.add_argument('--flow-type',
 
 # Linux uses CUBIC-TCP by default.
 parser.add_argument('--cong',
-                    help="Congestion control algorithm to use",
+                    help="Congestion control algorithm to use for each flow. If only one passeed, it is used for all",
+                    nargs="+",
                     default="bbr")
 
 parser.add_argument('--fig-num',
@@ -96,11 +97,10 @@ class BBTopo(Topo):
 
     def build(self, n):
         switch = self.addSwitch('s0')
-        delay_inc = int(args.delay_inc)
         for i in range(n):
             host = self.addHost('h{}'.format(i))
             link = self.addLink(host, switch,
-                             delay=str(args.delay_min + i*delay_inc) + 'ms',
+                             delay=str(args.delay_min + i*args.delay_inc) + 'ms',
                              bw=args.bw_host)
         host_dest = self.addHost('h{}'.format(n))
         link_dest = self.addLink(host_dest, switch, bw=args.bw_net,
@@ -372,7 +372,12 @@ def figure2(net):
 
     # Start the iperf flows.
     time_btwn_flows = args.time_btwn_flows
-    cong = [args.cong for x in range(args.num_flows)]
+    cong = args.cong
+    if len(cong) == 1:
+        cong = cong * args.num_flows
+    else:
+        assert len(cong) == args.num_flows
+
     flows = start_flows(net, args.num_flows, time_btwn_flows, cong, args.flow_type,
                        flow_monitor=iperf_bbr_mon)
 

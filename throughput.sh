@@ -21,6 +21,6 @@ captcp throughput -u Mbit --stdio flow$i.dmp > captcp$i.txt
 awk "{print (\$1+$i*$time_btwn_flows-1)(\",\")(\$2) }" < captcp$i.txt > captcp-csv$i.txt
 done
 cd $oldpwd
-python plot_throughput.py --time-btwn-flows $time_btwn_flows --xlimit $time -f $dir/captcp-csv* -o $dir/throughput.png
+python plot_throughput.py --time-btwn-flows $time_btwn_flows --xlimit $time -f $dir/captcp-csv* -o $dir/throughput.png -l $legend
 
 rm -f $dir/*.txt $dir/*.dmp
