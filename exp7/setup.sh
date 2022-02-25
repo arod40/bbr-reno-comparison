@@ -1,0 +1,10 @@
+time=50
+cong=reno
+bw=100
+delay_min=5
+delay_inc=0
+maxq=1024
+num_flows=5
+time_btwn_flows=2
+flow_type=iperf
+legend="reno1 reno2 reno3 reno4 reno5"

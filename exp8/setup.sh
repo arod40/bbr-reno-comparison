@@ -1,0 +1,10 @@
+time=100
+cong=bbr
+bw=100
+delay_min=5
+delay_inc=20
+maxq=512
+num_flows=5
+time_btwn_flows=0
+flow_type=iperf
+legend="bbr1-5ms bbr2-25ms bbr3-45ms bbr4-65ms bbr5-85ms"

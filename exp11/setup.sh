@@ -1,0 +1,10 @@
+time=100
+cong="bbr reno bbr reno bbr reno"
+bw=100
+delay_min=5
+delay_inc=20
+maxq=1024
+num_flows=6
+time_btwn_flows=0
+flow_type=iperf
+legend="bbr1-5ms reno1-25ms bbr2-45ms reno2-65ms bbr3-85ms reno3-105ms"

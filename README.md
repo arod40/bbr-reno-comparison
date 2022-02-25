@@ -17,10 +17,10 @@ When creating the virtual machine, make sure to give it at least 9Gb of hard dri
 
 6. Run ```sudo chmod +x *.sh```. To give execution permission to the scripts.
 
-7. Run ```./install_kernel.sh```. This installs the modified linux kernel. After the script is completed the computer will reboot.
+7. Run ```sudo ./install_kernel.sh```. This installs the modified linux kernel. It takes around 20 min to complete. At some point it asks for the user password. After the script is completed the computer will reboot.
 
 8. Navigate again to the project directory and run
-```./install_deps.sh```
+```sudo ./install_deps.sh```
 
 # Running the experiments
 
